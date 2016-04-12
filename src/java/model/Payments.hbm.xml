@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<!-- Generated Apr 12, 2016 1:06:15 PM by Hibernate Tools 4.3.1 -->
+<hibernate-mapping>
+    <class name="model.Payments" table="payments" catalog="mystore" optimistic-lock="version">
+        <composite-id name="id" class="model.PaymentsId">
+            <key-property name="customerNumber" type="int">
+                <column name="customerNumber" />
+            </key-property>
+            <key-property name="checkNumber" type="string">
+                <column name="checkNumber" length="50" />
+            </key-property>
+        </composite-id>
+        <many-to-one name="customers" class="model.Customers" update="false" insert="false" fetch="select">
+            <column name="customerNumber" not-null="true" />
+        </many-to-one>
+        <property name="paymentDate" type="date">
+            <column name="paymentDate" length="10" not-null="true" />
+        </property>
+        <property name="amount" type="double">
+            <column name="amount" precision="22" scale="0" not-null="true" />
+        </property>
+    </class>
+</hibernate-mapping>

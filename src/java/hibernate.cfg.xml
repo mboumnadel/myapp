@@ -10,5 +10,13 @@
     <property name="hibernate.show_sql">true</property>
     <property name="hibernate.current_session_context_class">thread</property>
     <property name="hibernate.query.factory_class">org.hibernate.hql.internal.ast.ASTQueryTranslatorFactory</property>
+    <mapping resource="model/Offices.hbm.xml"/>
+    <mapping resource="model/Customers.hbm.xml"/>
+    <mapping resource="model/Orders.hbm.xml"/>
+    <mapping resource="model/Payments.hbm.xml"/>
+    <mapping resource="model/Employees.hbm.xml"/>
+    <mapping resource="model/Orderdetails.hbm.xml"/>
+    <mapping resource="model/Products.hbm.xml"/>
+    <mapping resource="model/Productlines.hbm.xml"/>
   </session-factory>
 </hibernate-configuration>
