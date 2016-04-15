@@ -4,10 +4,14 @@
 
 <html>
     <head>
+        
+        <link rel="stylesheet" type="text/css" href="<s:url value="/main.css"/>">
         <title><s:text name="HelloWorld.message"/></title>
     </head>
 
     <body>
+        <s:include value="/header.jsp"></s:include>
+        
         <h2><s:property value="message"/></h2>
 
         <h3>Languages</h3>
