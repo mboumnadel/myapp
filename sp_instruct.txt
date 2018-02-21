@@ -1,0 +1,137 @@
+Target object: The object being advised by one or more aspects. This object will always be a proxied object. Also referred to as the advised object.
+
+Weaving: Weaving is the process of linking aspects with other application types or objects to create an advised object. This can be done at compile time, load time, or at runtime.
+
+Spring supports two methods: schema-based  and @AspectJ annotation style
+
+schema-based 
+<aop:config>
+  <aop:aspect id = "myAspect" ref = "aBean">
+      <aop:PointCut id = "businessService" expression = "execution(* com.xyz.myapp.service.*.*(..))"/>
+      <!-- a before advice definition -->
+      <aop:before PointCut-ref = "businessService"  method = "doRequiredTask"/>
+   </aop:aspect>
+</aop:config>
+<bean id = "aBean" class = "...">
+
+@AspectJ annotation style
+# To enable annotations
+<aop:aspectj-autoproxy/>
+# To configure aspect
+<bean id = "myAspect" class = "org.xyz.AspectModule">
+   <!-- configure properties of aspect here as normal -->
+</bean>
+
+import org.aspectj.lang.annotation.Aspect;
+@Aspect
+public class AspectModule {
+	@PointCut("execution(* com.xyz.myapp.service.*.*(..))") // expression 
+	private void businessService() {}  // signature
+	
+	@Before("businessService()")
+	public void doBeforeTask(){ ... }
+}
+----------------
+PROG TRANS MAN WITH JdbcTemplate AND transaction Manager DIRECTLY
+public void setDataSource(DataSource dataSource) {
+	this.dataSource = dataSource;
+	this.jdbcTemplateObject = new JdbcTemplate(dataSource);
+}
+public void setTransactionManager(PlatformTransactionManager transactionManager) {
+	this.transactionManager = transactionManager;
+}
+public void create(...){
+	TransactionDefinition def = new DefaultTransactionDefinition();
+	TransactionStatus status = transactionManager.getTransaction(def);
+		jdbcTemplateObject.update( SQL1, name, age);
+	transactionManager.commit(status);
+	transactionManager.rollback(status);
+}
+
+
+PROG TRANS MAN WITH TransactionTemplate
+
+public class ServiceImpl implements Service {
+
+  private final TransactionTemplate transactionTemplate;
+
+  public ServiceImpl(PlatformTransactionManager transactionManager){
+	this.transactionTemplate = new TransactionTemplate(transactionManager);
+  }
+
+  //transaction settings can also be done in xml file
+  this.transactionTemplate.setIsolationLevel(TransactionDefinition.ISOLATION_READ_UNCOMMITTED);
+  this.transactionTemplate.setTimeout(30); // 30 seconds       
+
+  public Object someServiceMethod(){        
+
+    return transactionTemplate.execute(new TransactionCallback(){
+		public Object doInTransaction(TransactionStatus status){
+			// the code in this method executes in a transactional context
+			updateOperation1();
+			return resultOfUpdateOperation2();}
+	});
+  }
+}
+
+
+DECLARATIVE TRANS MAN IN XML
+
+public class StudentJDBCTemplate implements StudentDAO {
+	private JdbcTemplate jdbcTemplateObject;
+
+	public void setDataSource(DataSource dataSource) {
+		this.jdbcTemplateObject = new JdbcTemplate(dataSource);
+	}
+	public void create(String name, Integer age, Integer marks, Integer year){
+		try {
+			jdbcTemplateObject.update( SQL1, name, age);
+			int sid = jdbcTemplateObject.queryForInt( SQL2 );
+		}
+		catch (DataAccessException e) {
+			System.out.println("Error in creating record, rolling back");
+			throw e;
+		}
+	}
+}
+<bean id="dataSource"></bean>
+
+<bean id = "transactionManager" class = "org.springframework.jdbc.datasource.DataSourceTransactionManager">
+	<property name = "dataSource" ref = "dataSource" />    
+</bean>
+
+<bean id = "studentJDBCTemplate"   class = "com.tutorialspoint.StudentJDBCTemplate">
+      <property name = "dataSource" ref = "dataSource"/>
+</bean>
+
+<tx:advice id = "txAdvice" transaction-manager = "transactionManager">
+	<tx:attributes>
+		<tx:method name = "create"/>
+	</tx:attributes>
+</tx:advice>
+
+<aop:config>
+	<aop:pointcut id = "createOperation" expression = "execution(* com.tutorialspoint.StudentJDBCTemplate.create(..))"/>
+
+	<aop:advisor advice-ref = "txAdvice" pointcut-ref = "createOperation"/>
+</aop:config>
+
+DECLARATIVE TRANS MAN  WITH ANNOTATIONS
+
+<bean id="txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager"/>
+<tx:annotation-driven transaction-manager="txManager"/>
+
+If you put an annotation on the Interface Level and if you are using class-based proxies (proxy-target-class="true") or the weaving-based aspect (mode="aspectj"), 
+then the transaction settings are not recognized by the proxying and weaving infrastructure .i.e Transactional behaviour will not be applied.
+
+<tx:annotation-driven proxy-target-class="true">
+Default configuration: proxy-target-class="false"
+In proxy mode (which is the default), only 'external' method calls coming in through the proxy will be intercepted. This means that 'self-invocation', 
+i.e. a method within the target object calling some other method of the target object, won't lead to an actual transaction at runtime even if the invoked method is marked with @Transactional.
+
+To be clear: using 'proxy-target-class="true"' on <tx:annotation-driven/>, <aop:aspectj-autoproxy/> or <aop:config/> elements will force the use of CGLIB proxies for all three of them.
+Spring AOP uses either JDK dynamic proxies or CGLIB to create the proxy for a given target object
+JDK dynamic proxies work on interfaces
+CGLIB is to proxy every method defined for the target object, not just those implemented by its interfaces.
+To force the use of CGLIB proxies set the value of the proxy-target-class attribute of the <aop:config> element to true:
+
