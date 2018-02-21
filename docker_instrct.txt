@@ -1,0 +1,179 @@
+develop applications
+ship them into containers 
+which can then be deployed anywhere.
+
+An image is a combination of a file system and parameters.
+
+A container is an instance of an image.
+
+-- imanges cmds
+docker images 
+docker rmi
+
+-- container cmds
+docker run						# sudo docker run –it centos /bin/bash (run bash after container is started)
+docker run -p 8080:8080 -p 50000:50000 jenkins 
+docker run --rm -it --name myphpserver php:7.1.13-apache-jessie bash
+
+docker ps
+docker attach ContainerID		# attach to a running container.
+docker rm ContainerID			#  Delete a container.
+docker stop ContainerID			# Stop a running container.
+docker pause ContainerID		# Pause the processes in a running container.
+docker unpause ContainerID		# Unpause the processes in a running container.
+docker stats ContainerID 		# Provide the statistics of a running container.
+
+docker top	ContainerID 		# See the top processes within a container.
+docker kill ContainerID			# Kill the processes in a running container.
+
+docker inspect imageName		# See the details of an image or container.
+
+docker history ImageID 			# See all the commands that were run with an image via a container.
+
+sudo service docker start 		# Start docker service
+sudo service docker stop 		# Stop docker service
+
+# use Ctrl+P+Q command to exit out of the container but keep it still running. (use nsenter as alternative)
+
+docker build  -t ImageName:TagName dir				# dir being context folder (sudo docker build –t myimage:0.1  .)
+
+docker tag imageID Repositoryname 					# Tag an image to the relevant repository.
+docker tag ab0c1d3744dd demousr/demorep:1.0
+
+docker login 										# Login to registry
+
+docker push Repositoryname 							# Push images to the Docker Hub.
+docker push demousr/demorep:1.0 
+
+docker pull demousr/demorep
+
+
+--------------------------------------------------------------------------------------------------------
+# Dockerfile file
+
+FROM php:7.1.8-apache
+
+MAINTAINER Paul Redmond
+
+COPY . /srv/app
+COPY .docker/vhost.conf /etc/apache2/sites-available/000-default.conf
+
+RUN chown -R www-data:www-data /srv/app && a2enmod rewrite
+
+-------------------
+
+# Build an image from Dockerfile
+
+docker build --file .docker/Dockerfile -t laravel-docker .
+
+------------------
+
+# Running a container based on the application image
+
+docker run --rm -p 8080:80 laravel-docker
+
+# Need to define volumes to be able to modify application code locally
+
+---------------------------------------------------------------------------------------------------
+
+# Docker Compose automates running your containers, linking them together, and networking them.
+
+docker-compose.yml
+
+version: '3'
+services:
+  app:
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile
+    image: laravel-docker
+    ports:
+		- 8080:80
+    volumes:
+		- .:/srv/app
+
+docker-compose up --build	# Build the image and Run the container
+OR
+docker-compose build		# Build the image
+docker-compose up			# Run the container
+
+
+---------------------------------------------------------------------------------------------------------
+
+# Adding Mysql and Redis
+
+
+version: '3'
+services:
+  app:
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile
+    image: laravel-docker
+    ports:
+      - 8080:80
+    volumes:
+      - .:/srv/app
+    links:
+      - mysql
+      - redis
+    environment:
+      DB_HOST: mysql
+      DB_DATABASE: laravel_docker
+      DB_USERNAME: app
+      DB_PASSWORD: password
+      REDIS_HOST: redis
+      SESSION_DRIVER: redis
+      CACHE_DRIVER: redis
+  mysql:
+    image: mysql:5.7
+    ports:
+      - 13306:3306
+    environment:
+      MYSQL_DATABASE: laravel_docker
+      MYSQL_USER: app
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: password
+  redis:
+    image: redis:4.0-alpine
+    ports:
+	  - 16379:6379
+	  
+
+
+
+# Dockerfile update to install php extensions
+
+FROM php:7.1.8-apache
+
+MAINTAINER Paul Redmond
+
+COPY . /srv/app
+COPY .docker/vhost.conf /etc/apache2/sites-available/000-default.conf
+
+WORKDIR /srv/app
+
+RUN docker-php-ext-install mbstring pdo pdo_mysql && chown -R www-data:www-data /srv/app
+
+---------------------------------------
+
+#  peek around inside a running container and run a few commands (bash session for example).
+
+docker-compose exec app /bin/bash				# app being container/image name
+OR
+docker exec -it 4c1ee740cb92 /bin/bash			# 4c1ee740cb92 being container id
+docker exec -it 4c1ee740cb92 bash
+
+The -i flag keeps STDIN open even if not attached, and the -t flag allocates a pseudo-TTY to give you a text-only console to run an interactive bash shell.
+
+
+----------------------------------------------------------------------------------
+# Using specific versions is a good idea to avoid unexpected changes, just like properly versioning your PHP Composer dependencies.
+
+# I just add a 1 in front of the original port or 3306 + 10,000
+
+# Source: https://bitpress.io/simple-approach-using-docker-with-php/
+
+# docker ps -a --filter "status=exited" --format "{{.ID}}" | xargs docker rm  (remove all exited containers)
+
+
